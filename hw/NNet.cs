@@ -1,57 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace hw
 {
-    internal class Neuron
-    {
-
-    }
     public class NNet
     {
-        public double[] InputLayerValues;
-        public double[] HiddenNeuronValues;
-        public double[] OutputNeuronValues;
-        public double[] HiddenNeuronDeltas;
-        public double[] OutputNeuronDeltas;
-
-        public double[,] InputToHiddenWeights;
-        public double[,] HiddenToOutputWeights;
-
-        public List<Image> InputData;
-
         public double LearningRate { get; set; }
+
+        private double[] _inputLayerValues;
+        private double[] _hiddenNeuronValues;
+        private double[] _outputNeuronValues;
+        private double[] _hiddenNeuronDeltas;
+        private double[] _outputNeuronDeltas;
+
+        private double[,] _inputToHiddenWeights;
+        private double[,] _hiddenToOutputWeights;
+
+        private List<Image> _inputData;
 
         private int _inputLayerCount;
         private int _hiddenLayerCount;
         private int _outputLayerCount;
-        private double _nu;
-        /// <summary>
-        /// Neural Network
-        /// </summary>
-        /// <param name="inputImages"></param>
-        /// <param name="hiddenLayerCount"></param>
-        /// <param name="outputLayerCount"></param>
-        public NNet(List<Image> inputImages, int hiddenLayerCount, int outputLayerCount, double nu)
+        private double _error;
+
+        public NNet(List<Image> inputImages, int hiddenLayerCount, int outputLayerCount, double learningRate, double error)
         {
-            _nu = nu;
-            InputData = new List<Image>(inputImages);
-            AllocateInputData(InputData[0]);
+            LearningRate = learningRate;
+            _error = error;
             _hiddenLayerCount = hiddenLayerCount;
             _outputLayerCount = outputLayerCount;
 
-            HiddenNeuronValues = new double[_hiddenLayerCount];
-            OutputNeuronValues = new double[_outputLayerCount];
-            HiddenNeuronDeltas = new double[_hiddenLayerCount];
-            OutputNeuronDeltas = new double[_outputLayerCount];
-            InputToHiddenWeights = new double[_hiddenLayerCount, _inputLayerCount];
-            HiddenToOutputWeights = new double[_outputLayerCount, _hiddenLayerCount];
+            _inputData = new List<Image>(inputImages);
+            AllocateInputData(_inputData[0]);
+
+            _hiddenNeuronValues = new double[_hiddenLayerCount];
+            _outputNeuronValues = new double[_outputLayerCount];
+            _hiddenNeuronDeltas = new double[_hiddenLayerCount];
+            _outputNeuronDeltas = new double[_outputLayerCount];
+            _inputToHiddenWeights = new double[_hiddenLayerCount, _inputLayerCount];
+            _hiddenToOutputWeights = new double[_outputLayerCount, _hiddenLayerCount];
         }
 
-        public void Train(int NumberOfSteps)
+        public void Train(int Epochs)
         {
             var rnd = new Random();
 
@@ -59,26 +50,22 @@ namespace hw
             {
                 for (int j = 0; j < _inputLayerCount; j++)
                 {
-                    InputToHiddenWeights[i, j] = rnd.NextDouble() / 100d;
+                    _inputToHiddenWeights[i, j] = rnd.NextDouble() / 100d;
                 }
             }
             for (int i = 0; i < _outputLayerCount; i++)
             {
                 for (int j = 0; j < _hiddenLayerCount; j++)
                 {
-                    HiddenToOutputWeights[i, j] = rnd.NextDouble() / 100d;
+                    _hiddenToOutputWeights[i, j] = rnd.NextDouble() / 100d;
                 }
             }
 
             var output = new double[_outputLayerCount];
 
-            for (int i = 0; i < NumberOfSteps; i++)
+            for (int i = 0; i < Epochs; i++)
             {
-                Console.WriteLine("StartAllocateRandomData");
-
-                var randomizedInput = InputData.OrderBy(x => rnd.Next()).ToList();
-
-                Console.WriteLine("FinishAllocateRandomData");
+                var randomizedInput = _inputData.OrderBy(x => rnd.Next()).ToList();
 
                 foreach (var image in randomizedInput)
                 {
@@ -92,14 +79,18 @@ namespace hw
                     ComputeDerivatives(output);
                     ChangeWeights();
                 }
-                Console.WriteLine("Step " + i);
+
+                Console.WriteLine("Epoch " + i);
+
                 var err = ComputeCrossEntropy();
-                if (err < 0.005d)
+
+                if (err < _error)
                 {
                     Console.WriteLine("TrainedSuccessfully");
                     return;
                 }
-                Console.WriteLine(err + " next");
+
+                Console.WriteLine("Error: " + err);
             }
             Console.WriteLine("Trained");
         }
@@ -132,9 +123,9 @@ namespace hw
 
             for (int i = 0; i < _outputLayerCount; i++)
             {
-                if (OutputNeuronValues[i] > max)
+                if (_outputNeuronValues[i] > max)
                 {
-                    max = OutputNeuronValues[i];
+                    max = _outputNeuronValues[i];
                     maxNum = i;
                 }
             }
@@ -147,13 +138,13 @@ namespace hw
             var count = image.Data.GetLength(0);
             _inputLayerCount = count * count;
 
-            InputLayerValues = new double[_inputLayerCount];
+            _inputLayerValues = new double[_inputLayerCount];
 
             for (int i = 0; i < count; i++)
             {
                 for (int j = 0; j < count; j++)
                 {
-                    InputLayerValues[i + j * count] = image.Data[i, j] / 255f;
+                    _inputLayerValues[i + j * count] = image.Data[i, j] / 255f;
                 }
             }
         }
@@ -173,17 +164,16 @@ namespace hw
 
                 for (int j = 0; j < _inputLayerCount; j++)
                 {
-                    sum += InputLayerValues[j] * InputToHiddenWeights[i, j];
+                    sum += _inputLayerValues[j] * _inputToHiddenWeights[i, j];
                 }
 
-                HiddenNeuronValues[i] = SigmoidActivation(sum);
+                _hiddenNeuronValues[i] = SigmoidActivation(sum);
             }
         }
 
         private void ComputeNeuronsOutputValues()
         {
             var sum = 0d;
-
             var expSum = 0d;
 
             for (int i = 0; i < _outputLayerCount; i++)
@@ -192,11 +182,10 @@ namespace hw
 
                 for (int j = 0; j < _hiddenLayerCount; j++)
                 {
-                    sum += HiddenNeuronValues[j] * HiddenToOutputWeights[i, j];
+                    sum += _hiddenNeuronValues[j] * _hiddenToOutputWeights[i, j];
                 }
 
-                OutputNeuronValues[i] = sum;
-
+                _outputNeuronValues[i] = sum;
                 expSum += Math.Exp(sum);
             }
 
@@ -207,7 +196,7 @@ namespace hw
         {
             for (int i = 0; i < _outputLayerCount; i++)
             {
-                OutputNeuronValues[i] = Math.Exp(OutputNeuronValues[i]) / expSum;
+                _outputNeuronValues[i] = Math.Exp(_outputNeuronValues[i]) / expSum;
             }
         }
 
@@ -216,8 +205,7 @@ namespace hw
             //softmax derivative
             for (int i = 0; i < _outputLayerCount; i++)
             {
-                var outputValue = OutputNeuronValues[i];
-                OutputNeuronDeltas[i] = factOutputSignals[i] - outputValue;
+                _outputNeuronDeltas[i] = factOutputSignals[i] - _outputNeuronValues[i];
             }
 
             //sigmoid derivative
@@ -227,10 +215,10 @@ namespace hw
 
                 for (int j = 0; j < _outputLayerCount; j++)
                 {
-                    sum += OutputNeuronDeltas[j] * HiddenToOutputWeights[j, i];
+                    sum += _outputNeuronDeltas[j] * _hiddenToOutputWeights[j, i];
                 }
 
-                HiddenNeuronDeltas[i] = HiddenNeuronValues[i] * (1 - HiddenNeuronValues[i]) * sum;
+                _hiddenNeuronDeltas[i] = _hiddenNeuronValues[i] * (1 - _hiddenNeuronValues[i]) * sum;
             }
         }
 
@@ -240,14 +228,14 @@ namespace hw
             {
                 for (int j = 0; j < _inputLayerCount; j++)
                 {
-                    InputToHiddenWeights[i, j] += _nu * HiddenNeuronDeltas[i] * InputLayerValues[j];
+                    _inputToHiddenWeights[i, j] += LearningRate * _hiddenNeuronDeltas[i] * _inputLayerValues[j];
                 }
             }
             for (int i = 0; i < _hiddenLayerCount; i++)
             {
                 for (int j = 0; j < _outputLayerCount; j++)
                 {
-                    HiddenToOutputWeights[j, i] += _nu * OutputNeuronDeltas[j] * HiddenNeuronValues[i];
+                    _hiddenToOutputWeights[j, i] += LearningRate * _outputNeuronDeltas[j] * _hiddenNeuronValues[i];
                 }
             }
         }
@@ -257,7 +245,7 @@ namespace hw
             var result = 0d;
             var output = new double[_outputLayerCount];
 
-            foreach (var image in InputData)
+            foreach (var image in _inputData)
             {
                 Array.Clear(output, 0, _outputLayerCount);
                 AllocateInputData(image);
@@ -269,11 +257,11 @@ namespace hw
 
                 for (int i = 0; i < _outputLayerCount; i++)
                 {
-                    result += output[i] * Math.Log(OutputNeuronValues[i]);
+                    result += output[i] * Math.Log(_outputNeuronValues[i]);
                 }
             }
 
-            return -result / InputData.Count;
+            return -result / _inputData.Count;
         }
     }
 }

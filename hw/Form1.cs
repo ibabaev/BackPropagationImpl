@@ -16,44 +16,8 @@ namespace hw
         public Form1()
         {
             InitializeComponent();
-            // Task.Factory.StartNew(Console);
-            Console.WriteLine("Lets start");
 
             _images = new List<Image>();
-
-            foreach (var image in MnistReader.ReadTestData())
-            {
-                _images.Add(image);
-            }
-
-            var images = new List<Image>();
-
-            foreach (var image in MnistReader.ReadTrainingData())
-            {
-                images.Add(image);
-            }
-
-            Console.WriteLine("read, starting allocating net");
-
-            _net = new NNet(images, 50, 10, 0.01d);
-
-            Console.WriteLine("done");
-
-            _net.Train(25);
-
-            _net.Test(_images);
-            //DisplayData
-            //foreach (var image in MnistReader.ReadTestData())
-            //{
-            //    for (int i = 0; i < image.Data.GetLength(0); i++)
-            //    {
-            //        Console.WriteLine();
-            //        for (int j = 0; j < image.Data.GetLength(0); j++)
-            //            if (image.Data[i, j] == 0) Console.Write(" ");
-            //            else Console.Write("0");
-            //    }
-            //}
-
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -88,36 +52,58 @@ namespace hw
 
         }
 
-        //private void Console()
-        //{
-        //    // Запускаем консоль.
-        //    if (AllocConsole())
-        //    {
-        //        System.Console.WriteLine("Для выхода наберите exit.");
-        //        while (true)
-        //        {
-        //            // Считываем данные.
-        //            string output = System.Console.ReadLine();
-        //            if (output == "exit")
-        //                break;
-        //            // Выводим данные в textBox
-        //            Action action = () => textBox.Text += output + Environment.NewLine;
-        //            if (InvokeRequired)
-        //                Invoke(action);
-        //            else
-        //                action();
-        //        }
-        //        // Закрываем консоль.
-        //        FreeConsole();
-        //    }
-        //}
+        private void button2_Click(object sender, EventArgs e)
+        {
+            var hidden = int.Parse(textBox1.Text);
+            var output = int.Parse(textBox2.Text);
+            var lrate = double.Parse(textBox3.Text);
+            var error = double.Parse(textBox4.Text);
+            var epochs = int.Parse(textBox5.Text);
 
-        //[DllImport("kernel32.dll", SetLastError = true)]
-        //[return: MarshalAs(UnmanagedType.Bool)]
-        //private static extern bool AllocConsole();
+            foreach (var image in MnistReader.ReadTestData())
+            {
+                _images.Add(image);
+            }
 
-        //[DllImport("kernel32.dll", SetLastError = true)]
-        //[return: MarshalAs(UnmanagedType.Bool)]
-        //private static extern bool FreeConsole();
+            var images = new List<Image>();
+
+            foreach (var image in MnistReader.ReadTrainingData())
+            {
+                images.Add(image);
+            }
+
+            Console.WriteLine("Loading Mnist Data: Done");
+            Console.WriteLine(hidden + "||" + output + "||" + lrate + "||" + error);
+           _net = new NNet(images, hidden, output, lrate, error);
+
+            _net.Train(epochs);
+
+            _net.Test(_images);
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox5_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
